@@ -1,6 +1,7 @@
 package context
 
 import (
+    "os"
 	"strconv"
 	"strings"
 
@@ -71,13 +72,30 @@ func (self *CommitMessageContext) GetSelectedIndex() int {
 func (self *CommitMessageContext) GetPreserveMessage() bool {
 	return self.viewModel.preserveMessage
 }
-
 func (self *CommitMessageContext) GetPreservedMessage() string {
-	return self.viewModel.preservedMessage
+    message := self.viewModel.preservedMessage
+
+    currentRepo, err := os.Getwd()
+    if message == "" && err == nil {
+        // TODO We might want to reload the app state using loadAppState here, but it opens up
+        //  a can of worms because we'd need to make sure we're not overwriting any other changes
+        //  to the app state.
+        message = self.c.GetAppState().PreservedMessage[currentRepo]
+    }
+    return message
 }
 
 func (self *CommitMessageContext) SetPreservedMessage(message string) {
 	self.viewModel.preservedMessage = message
+
+    currentRepo, err := os.Getwd()
+    if err == nil {
+        if self.c.GetAppState().PreservedMessage == nil {
+            self.c.GetAppState().PreservedMessage = make(map[string]string)
+        }
+        self.c.GetAppState().PreservedMessage[currentRepo] = message
+        self.c.SaveAppState()
+    }
 }
 
 func (self *CommitMessageContext) GetHistoryMessage() string {
