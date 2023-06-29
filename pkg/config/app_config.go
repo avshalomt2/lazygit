@@ -317,6 +317,10 @@ type AppState struct {
 	RecentRepos         []string
 	StartupPopupVersion int
 
+    // Last preserved commit message for this repo, in case we closed and re-open lazygit
+    // {"repo": "string"}
+    PreservedMessage      map[string]string
+
 	// these are for custom commands typed in directly, not for custom commands in the lazygit config
 	CustomCommandsHistory []string
 	HideCommandLog        bool

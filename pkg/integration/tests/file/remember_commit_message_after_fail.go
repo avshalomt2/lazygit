@@ -12,6 +12,8 @@ if [[ -f bad ]]; then
 fi
 `
 
+
+// FIXME Test the preserved message on disk logic
 var RememberCommitMessageAfterFail = NewIntegrationTest(NewIntegrationTestArgs{
 	Description:  "Verify that the commit message is remembered after a failed attempt at committing",
 	ExtraCmdArgs: []string{},
