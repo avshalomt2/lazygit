@@ -126,9 +126,9 @@ func (self *MenuContext) GetKeybindings(opts types.KeybindingsOpts) []*types.Bin
 }
 
 func (self *MenuContext) OnMenuPress(selectedItem *types.MenuItem) error {
-	if err := self.c.PopContext(); err != nil {
-		return err
-	}
+    if err := self.c.PopContext(); err != nil {
+        return err
+    }
 
 	if err := selectedItem.OnPress(); err != nil {
 		return err

@@ -79,7 +79,6 @@ func RussianTranslationSet() TranslationSet {
 		FileFilter:                          "Фильтровать файлы (проиндексированные/непроиндексированные)",
 		FilterStagedFiles:                   "Показывать только проиндексированные файлы",
 		FilterUnstagedFiles:                 "Показывать только непроиндексированные файлы",
-		ResetCommitFilterState:              "Сбросить фильтр",
 		NoChangedFiles:                      "Нет изменённых файлов",
 		PullWait:                            "Получение и слияние изменении...",
 		PushWait:                            "Отправка изменении...",

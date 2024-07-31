@@ -11,7 +11,6 @@ import (
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
 	"github.com/jesseduffield/lazygit/pkg/commands/types/enums"
 	"github.com/jesseduffield/lazygit/pkg/gui/context"
-	"github.com/jesseduffield/lazygit/pkg/gui/filetree"
 	"github.com/jesseduffield/lazygit/pkg/gui/mergeconflicts"
 	"github.com/jesseduffield/lazygit/pkg/gui/presentation"
 	"github.com/jesseduffield/lazygit/pkg/gui/style"
@@ -451,26 +450,16 @@ func (self *RefreshHelper) refreshStateFiles() error {
 		}
 	}
 
+    // FIXME Restore file filtering code here
+    //  When no filter was applied (DisplayAll), set to (DisplayConflicted) only, and when restore backwards.
+
 	if self.c.Git().Status.WorkingTreeState() != enums.REBASE_MODE_NONE && conflictFileCount == 0 && prevConflictFileCount > 0 {
 		self.c.OnUIThread(func() error { return self.mergeAndRebaseHelper.PromptToContinueRebase() })
 	}
 
 	fileTreeViewModel.RWMutex.Lock()
 
-	// only taking over the filter if it hasn't already been set by the user.
-	// Though this does make it impossible for the user to actually say they want to display all if
-	// conflicts are currently being shown. Hmm. Worth it I reckon. If we need to add some
-	// extra state here to see if the user's set the filter themselves we can do that, but
-	// I'd prefer to maintain as little state as possible.
-	if conflictFileCount > 0 {
-		if fileTreeViewModel.GetFilter() == filetree.DisplayAll {
-			fileTreeViewModel.SetFilter(filetree.DisplayConflicted)
-		}
-	} else if fileTreeViewModel.GetFilter() == filetree.DisplayConflicted {
-		fileTreeViewModel.SetFilter(filetree.DisplayAll)
-	}
-
-	self.c.Model().Files = files
+   	self.c.Model().Files = files
 	fileTreeViewModel.SetTree()
 	fileTreeViewModel.RWMutex.Unlock()
 

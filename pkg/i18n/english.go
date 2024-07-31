@@ -54,7 +54,8 @@ type TranslationSet struct {
 	FileFilter                          string
 	FilterStagedFiles                   string
 	FilterUnstagedFiles                 string
-	ResetCommitFilterState              string
+	FilterUntrackedFiles                string
+	FilterConflictedFiles               string
 	MergeConflictsTitle                 string
 	Checkout                            string
 	NoChangedFiles                      string
@@ -741,10 +742,12 @@ func EnglishTranslationSet() TranslationSet {
 		Scroll:                              "Scroll",
 		MergeConflictsTitle:                 "Merge conflicts",
 		Checkout:                            "Checkout",
-		FileFilter:                          "Filter files (staged/unstaged)",
-		FilterStagedFiles:                   "Show only staged files",
-		FilterUnstagedFiles:                 "Show only unstaged files",
-		ResetCommitFilterState:              "Reset filter",
+		FileFilter:                          "Filter files (staged/unstaged/untracked)", // FIXME Updated
+        // FIXME FilterStagedFiles and FilterUnstagedFiles should be updated in other languages
+		FilterStagedFiles:                   "Staged files",
+		FilterUnstagedFiles:                 "Unstaged files",
+        FilterUntrackedFiles:                "Untracked files", // FIXME New string
+        FilterConflictedFiles:               "Conflicted files", // FIXME New string
 		NoChangedFiles:                      "No changed files",
 		PullWait:                            "Pulling...",
 		PushWait:                            "Pushing...",

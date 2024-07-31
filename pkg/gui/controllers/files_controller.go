@@ -1,14 +1,17 @@
 package controllers
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/jesseduffield/gocui"
+	"github.com/jesseduffield/generics/slices"
 	"github.com/jesseduffield/lazygit/pkg/commands/git_commands"
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
 	"github.com/jesseduffield/lazygit/pkg/gui/context"
 	"github.com/jesseduffield/lazygit/pkg/gui/filetree"
 	"github.com/jesseduffield/lazygit/pkg/gui/types"
+	"github.com/jesseduffield/lazygit/pkg/gui/style"
 )
 
 type FilesController struct {
@@ -35,7 +38,7 @@ func (self *FilesController) GetKeybindings(opts types.KeybindingsOpts) []*types
 		},
 		{
 			Key:         opts.GetKey(opts.Config.Files.OpenStatusFilter),
-			Handler:     self.handleStatusFilterPressed,
+			Handler:     func () error { return self.handleStatusFilterPressed(-1) },
 			Description: self.c.Tr.FileFilter,
 		},
 		{
@@ -631,33 +634,84 @@ func (self *FilesController) handleAmendCommitPress() error {
 	return self.c.Helpers().AmendHelper.AmendHead()
 }
 
-func (self *FilesController) handleStatusFilterPressed() error {
-	return self.c.Menu(types.CreateMenuOptions{
-		Title: self.c.Tr.FilteringMenuTitle,
-		Items: []*types.MenuItem{
-			{
-				Label: self.c.Tr.FilterStagedFiles,
-				OnPress: func() error {
-					return self.setStatusFiltering(filetree.DisplayStaged)
-				},
-			},
-			{
-				Label: self.c.Tr.FilterUnstagedFiles,
-				OnPress: func() error {
-					return self.setStatusFiltering(filetree.DisplayUnstaged)
-				},
-			},
-			{
-				Label: self.c.Tr.ResetCommitFilterState,
-				OnPress: func() error {
-					return self.setStatusFiltering(filetree.DisplayAll)
-				},
-			},
-		},
-	})
+// FIXME Move this checkbox function to a more appropriate place (gocui_helpers?)
+func checkbox(isChecked bool, label string) string {
+	maybeTick := style.FgGreen.Sprintf("✔")
+	if !isChecked {
+		maybeTick = " "
+	}
+
+	return fmt.Sprintf("[%s] %s", maybeTick, label)
 }
 
-func (self *FilesController) setStatusFiltering(filter filetree.FileTreeDisplayFilter) error {
+func (self *FilesController) handleStatusFilterPressed(selectedIdx int) error {
+    type fileTypeToDisplay struct {
+        filterFlag filetree.FileTreeDisplayFilter
+        label string
+        key types.Key
+    }
+
+    displayFlags := []fileTypeToDisplay{
+        {filetree.DisplayStaged, self.c.Tr.FilterStagedFiles, 'y'},
+        {filetree.DisplayUnstaged, self.c.Tr.FilterUnstagedFiles, 'u'},
+        {filetree.DisplayUntracked, self.c.Tr.FilterUntrackedFiles, 'i'},
+        {filetree.DisplayConflicted, self.c.Tr.FilterConflictedFiles, 'v'},
+    }
+
+	menuItems := slices.Map(displayFlags, func(row fileTypeToDisplay) *types.MenuItem {
+        isChecked := self.context().FileTreeViewModel.GetFilter() & row.filterFlag == row.filterFlag
+
+		return &types.MenuItem{
+			Label: checkbox(isChecked, row.label),
+			OnPress: func() error {
+                ret := self.toggleStatusFilterFlag(row.filterFlag)
+                currentIndex := self.c.Contexts().Menu.GetSelectedLineIdx()
+                self.handleStatusFilterPressed(currentIndex)
+                return ret
+			},
+			Key: row.key,
+		}
+	})
+
+    ret := self.c.Menu(types.CreateMenuOptions{
+		Title: self.c.Tr.FilteringMenuTitle,
+		Items: menuItems,
+	})
+    if selectedIdx != -1 {
+        self.c.Contexts().Menu.SetSelectedLineIdx(selectedIdx)
+        self.c.Contexts().Menu.FocusLine()
+    }
+    return ret
+}
+
+func (self *FilesController) toggleStatusFilterFlag(flagToToggle filetree.FileTreeDisplayFilter) error {
+	filter := self.context().FileTreeViewModel.GetFilter()
+	filter = filter ^ flagToToggle
+
+    showStaged := filter & filetree.DisplayStaged == filetree.DisplayStaged
+    showUnstaged := filter & filetree.DisplayUnstaged == filetree.DisplayUnstaged
+    if !showStaged && !showUnstaged {
+        // FIXME Don't apply this logic when there are conflicting files - in this case,
+        //  we should allow showing only the conflicting files.
+        // When conflicts are detected and not filter is applied, the filter is set to 
+        // DisplayConflicted only - maybe this state (conflicted only) should be reachable only
+        // by the automatic transition from DisplayAll to DisplayConflicted?
+
+        // From some reason the program resets the file filter state if both staged and 
+        // unstaged are turned off, so we need to turn the other one back on.
+        if flagToToggle == filetree.DisplayStaged {
+            filter = filter | filetree.DisplayUnstaged
+        } else {
+            filter = filter | filetree.DisplayStaged
+        }
+    }
+
+
+	if filter == 0 {
+		// Can't turn off all flags - this would hide everything.
+		return nil
+	}
+
 	self.context().FileTreeViewModel.SetFilter(filter)
 	return self.c.PostRefreshUpdate(self.context())
 }

@@ -35,7 +35,6 @@ func dutchTranslationSet() TranslationSet {
 		Scroll:                              "Scroll",
 		FilterStagedFiles:                   "Show only staged files",
 		FilterUnstagedFiles:                 "Show only unstaged files",
-		ResetCommitFilterState:              "Reset commit file state filter",
 		MergeConflictsTitle:                 "Merge conflicten",
 		Checkout:                            "Uitchecken",
 		PullWait:                            "Pullen...",
