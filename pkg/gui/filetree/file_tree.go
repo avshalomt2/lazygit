@@ -9,13 +9,16 @@ import (
 )
 
 type FileTreeDisplayFilter int
-
 const (
-	DisplayAll FileTreeDisplayFilter = iota
-	DisplayStaged
+    // Use logarithmic values so we can combine them with bitwise OR
+	DisplayStaged FileTreeDisplayFilter = 1 << iota
 	DisplayUnstaged
+	DisplayUntracked
+
 	// this shows files with merge conflicts
 	DisplayConflicted
+
+	DisplayAll = DisplayUntracked | DisplayStaged | DisplayUnstaged | DisplayConflicted
 )
 
 type ITree[T any] interface {
@@ -73,18 +76,26 @@ func (self *FileTree) ExpandToPath(path string) {
 }
 
 func (self *FileTree) getFilesForDisplay() []*models.File {
-	switch self.filter {
-	case DisplayAll:
-		return self.getFiles()
-	case DisplayStaged:
-		return self.FilterFiles(func(file *models.File) bool { return file.HasStagedChanges })
-	case DisplayUnstaged:
-		return self.FilterFiles(func(file *models.File) bool { return file.HasUnstagedChanges })
-	case DisplayConflicted:
-		return self.FilterFiles(func(file *models.File) bool { return file.HasMergeConflicts })
-	default:
+    if self.filter == 0 {
 		panic(fmt.Sprintf("Unexpected files display filter: %d", self.filter))
 	}
+
+    includeStagedChanges := self.filter & DisplayStaged != 0
+    includeUnstagedChanges := self.filter & DisplayUnstaged != 0
+    includeUntrackedFiles := self.filter & DisplayUntracked != 0
+    includeConflictedFiles := self.filter & DisplayConflicted != 0
+
+    if includeStagedChanges && includeUnstagedChanges && includeUntrackedFiles && includeConflictedFiles {
+        return self.getFiles()
+    } else {
+        return self.FilterFiles(func(file *models.File) bool {
+            return (includeStagedChanges && file.HasStagedChanges) ||
+                   (includeUnstagedChanges && (file.HasUnstagedChanges && file.Tracked)) ||
+                   (includeUntrackedFiles && !file.Tracked) ||
+                   (includeConflictedFiles && file.HasMergeConflicts)
+        })
+    }
+
 }
 
 func (self *FileTree) FilterFiles(test func(*models.File) bool) []*models.File {
